@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -12,28 +12,20 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
 } from "react-native";
-import * as Font from "expo-font";
 
-import {
-  useFonts,
-  Roboto_400Regular,
-  Roboto_500Medium,
-} from "@expo-google-fonts/roboto";
-import * as SplashScreen from "expo-splash-screen";
-
-import AvatarButton from "../assets/icons/add.svg";
-
-SplashScreen.preventAutoHideAsync();
+import AvatarButton from "../../assets/icons/add.svg";
 
 const initialState = {
+  login: "",
   email: "",
   password: "",
 };
 
-export default function RegistrationScreen() {
+export default function RegistrationScreen({ navigation }) {
   const [state, setState] = useState(initialState);
   const [keyBoardStatus, setKeyBoardStatus] = useState("");
   const [isInputFocus, setIsInputFocus] = useState({
+    login: false,
     email: false,
     password: false,
   });
@@ -60,31 +52,18 @@ export default function RegistrationScreen() {
       const width = Dimensions.get("window").width - 16 * 2;
       setDimensions(width);
     };
-    Dimensions.addEventListener("change", onChange);
+    const dimentionsChange = Dimensions.addEventListener("change", onChange);
+
     return () => {
-      Dimensions.removeEventListener("change", onChange);
+      dimentionsChange.remove();
     };
   }, []);
-
-  let [fontsLoaded] = useFonts({
-    Roboto_400Regular,
-    Roboto_500Medium,
-  });
-
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
 
   const handleButtonPress = () => {
     Keyboard.dismiss();
     console.log(state);
     setState(initialState);
+    navigation.navigate("Home");
   };
 
   const handleInputFocus = (input) => {
@@ -101,30 +80,57 @@ export default function RegistrationScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-      <View style={styles.container} onLayout={onLayoutRootView}>
+      <View style={styles.container}>
         <ImageBackground
           style={styles.image}
-          source={require("../assets/images/bg-image.jpg")}
+          source={require("../../assets/images/bg-image.jpg")}
         >
           <View
             style={{
               ...styles.form,
               position:
                 keyBoardStatus === "Keyboard Shown" ? "absolute" : "relative",
-              top: keyBoardStatus === "Keyboard Shown" ? "53%" : 0,
+              top: keyBoardStatus === "Keyboard Shown" ? "30%" : 0,
             }}
           >
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
             >
-              <Text style={styles.formTitle}>Log In</Text>
+              <View
+                style={{
+                  ...styles.avatar,
+                  left: dimensions / 2,
+                }}
+              >
+                <TouchableOpacity
+                  style={{ position: "absolute", bottom: 14, right: -12 }}
+                >
+                  <AvatarButton />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.formTitle}>Registration</Text>
 
               <View
                 style={{
-                  gap: Dimensions.get("window").height < 400 ? 12 : 16,
                   width: dimensions,
                 }}
               >
+                <TextInput
+                  style={
+                    isInputFocus.login
+                      ? [styles.input, { borderColor: "#FF6C00" }]
+                      : styles.input
+                  }
+                  placeholder="Login"
+                  placeholderTextColor="#BDBDBD"
+                  value={state.login}
+                  onFocus={() => handleInputFocus("login")}
+                  onBlur={() => handleInputBlur("login")}
+                  onChangeText={(value) =>
+                    setState((prevState) => ({ ...state, login: value }))
+                  }
+                />
                 <TextInput
                   style={
                     isInputFocus.email
@@ -176,12 +182,18 @@ export default function RegistrationScreen() {
                 activeOpacity={0.7}
                 onPress={handleButtonPress}
               >
-                <Text style={styles.buttonText}>Log In</Text>
+                <Text style={styles.buttonText}>Register</Text>
               </TouchableOpacity>
             </KeyboardAvoidingView>
-            <Text style={styles.loginText}>
-              Don't have an account? Register
-            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Login")}
+              style={{ flex: 1, flexDirection: "row" }}
+            >
+              <Text style={styles.loginText}>
+                Already have an account?
+                <Text> Log in</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
         </ImageBackground>
       </View>
@@ -210,8 +222,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     width: "100%",
-    maxHeight: 489,
-    paddingBottom: Dimensions.get("window").height < 400 ? 30 : 144,
+    maxHeight: 550,
+    paddingBottom: Dimensions.get("window").height < 400 ? 20 : 65,
     justifyContent: "flex-end",
     alignItems: "center",
     borderWidth: 1,
@@ -231,9 +243,9 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     textAlign: "center",
-    paddingTop: Dimensions.get("window").height < 400 ? 16 : 32,
-    marginBottom: Dimensions.get("window").height < 400 ? 16 : 33,
-    fontFamily: "Roboto_500Medium",
+    paddingTop: Dimensions.get("window").height < 400 ? 16 : 92,
+    marginBottom: Dimensions.get("window").height < 400 ? 8 : 17,
+    fontFamily: "Roboto-Medium",
     fontSize: 30,
     lineHeight: 35.16,
     color: "#212121",
@@ -241,7 +253,8 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     paddingLeft: 16,
-    fontFamily: "Roboto_400Regular",
+    marginTop: Dimensions.get("window").height < 400 ? 8 : 16,
+    fontFamily: "Roboto-Regular",
     fontSize: 16,
     lineHeight: 18.75,
     borderColor: "#E8E8E8",
@@ -261,7 +274,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   passwordButtonText: {
-    fontFamily: "Roboto_400Regular",
+    fontFamily: "Roboto-Regular",
     fontSize: 16,
     lineHeight: 18.75,
     textAlign: "center",
@@ -270,14 +283,14 @@ const styles = StyleSheet.create({
 
   button: {
     paddingVertical: 16,
-    marginTop: Dimensions.get("window").height < 400 ? 24 : 43,
+    marginTop: Dimensions.get("window").height < 400 ? 16 : 43,
     borderWidth: 1,
     borderColor: "#FF6C00",
     borderRadius: 25,
     backgroundColor: "#FF6C00",
   },
   buttonText: {
-    fontFamily: "Roboto_400Regular",
+    fontFamily: "Roboto-Regular",
     fontSize: 16,
     lineHeight: 18.75,
     textAlign: "center",
@@ -286,7 +299,7 @@ const styles = StyleSheet.create({
   loginText: {
     marginTop: 16,
     textAlign: "center",
-    fontFamily: "Roboto_400Regular",
+    fontFamily: "Roboto-Regular",
     fontSize: 16,
     lineHeight: 18.75,
     color: "#1B4371",
