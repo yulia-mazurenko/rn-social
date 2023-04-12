@@ -4,18 +4,31 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   TouchableOpacity,
   Keyboard,
   TouchableWithoutFeedback,
   Dimensions,
 } from "react-native";
+import { Camera } from "expo-camera";
+import * as Location from "expo-location";
 
 import BackButton from "../../assets/icons/arrow-left.svg";
 import CameraButton from "../../assets/icons/camera.svg";
 import TrashButton from "../../assets/icons/trash.svg";
 import MapButton from "../../assets/icons/map-icon.svg";
 
+const initialState = {
+  name: "",
+  place: "",
+};
+
 export default function CreatePostsScreen({ navigation, route }) {
+  const [state, setState] = useState(initialState);
+  const [camera, setCamera] = useState(null);
+  const [photo, setPhoto] = useState(null);
+  const [isDisabledPublishButton, setIsDisabledPublishButton] = useState(true);
+
   const [dimensions, setDimensions] = useState(
     Dimensions.get("window").width - 16 * 2
   );
@@ -30,6 +43,28 @@ export default function CreatePostsScreen({ navigation, route }) {
       dimentionsChange.remove();
     };
   }, []);
+
+  const takePhoto = async () => {
+    const photo = await camera.takePictureAsync();
+    let location = await Location.getCurrentPositionAsync({});
+    console.log("latitude", location.coords.latitude);
+    console.log("longitude", location.coords.longitude);
+    setPhoto(photo.uri);
+    setIsDisabledPublishButton(false);
+  };
+  const deletePost = () => {
+    setPhoto(null);
+    setState(initialState);
+  };
+
+  const sendPhoto = () => {
+    setState(initialState);
+    navigation.navigate("Posts", {
+      screen: "DefaultPostsScreen",
+      params: { photo, state },
+    });
+  };
+
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
@@ -40,26 +75,40 @@ export default function CreatePostsScreen({ navigation, route }) {
             borderBottomColor: "#E8E8E8",
             paddingTop: 40,
             paddingBottom: 11,
+            marginTop: 10,
           }}
         >
-          <TouchableOpacity style={styles.backButton}>
-            <BackButton />
-          </TouchableOpacity>
           <Text style={styles.postsTitle}>Create Post</Text>
         </View>
+        <TouchableOpacity
+          style={styles.backButton}
+          activeOpacity={0.7}
+          onPress={() =>
+            navigation.navigate("Posts", {
+              screen: "DefaultPostsScreen",
+            })
+          }
+        >
+          <BackButton />
+        </TouchableOpacity>
 
         <View style={{ ...styles.postContainer, width: dimensions }}>
-          <View style={{ ...styles.photoContainer, width: dimensions }}>
-            <TouchableOpacity
-              style={{
-                ...styles.cameraButton,
-                left: dimensions / 2 - 30,
-                top: 90,
-              }}
-            >
+          <Camera
+            style={{ ...styles.camera, width: dimensions }}
+            ref={setCamera}
+          >
+            {photo && (
+              <View style={styles.takePhotoContainer}>
+                <Image
+                  source={{ uri: photo }}
+                  style={{ height: 120, width: 120 }}
+                />
+              </View>
+            )}
+            <TouchableOpacity onPress={takePhoto} activeOpacity={0.7}>
               <CameraButton />
             </TouchableOpacity>
-          </View>
+          </Camera>
 
           <Text style={styles.loadPhotoText}>Load a photo</Text>
           <View style={{ width: dimensions }}>
@@ -67,6 +116,10 @@ export default function CreatePostsScreen({ navigation, route }) {
               style={styles.input}
               placeholder="Name"
               placeholderTextColor="#BDBDBD"
+              value={state.name}
+              onChangeText={(value) =>
+                setState((prevState) => ({ ...state, name: value }))
+              }
             />
             <View>
               <TouchableOpacity
@@ -89,24 +142,40 @@ export default function CreatePostsScreen({ navigation, route }) {
                 }}
                 placeholder="Place"
                 placeholderTextColor="#BDBDBD"
+                value={state.place}
+                onChangeText={(value) =>
+                  setState((prevState) => ({ ...state, place: value }))
+                }
               />
             </View>
 
-            <TouchableOpacity style={styles.publishButton} activeOpacity={0.7}>
-              <Text style={styles.publishButtonText}>Publish</Text>
+            <TouchableOpacity
+              disabled={isDisabledPublishButton}
+              style={
+                photo
+                  ? {
+                      ...styles.publishButton,
+                      backgroundColor: "#FF6C00",
+                    }
+                  : styles.publishButton
+              }
+              onPress={sendPhoto}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={
+                  photo
+                    ? { ...styles.publishButtonText, color: "#fff" }
+                    : styles.publishButtonText
+                }
+              >
+                Publish
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              width: dimensions,
-              marginBottom: 0,
-            }}
-          >
-            <TouchableOpacity style={styles.trashButton}>
+          <View style={{ ...styles.trashButtonContainer, width: dimensions }}>
+            <TouchableOpacity onPress={deletePost}>
               <TrashButton />
             </TouchableOpacity>
           </View>
@@ -137,22 +206,25 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 24,
     height: 24,
-    top: 40,
+    top: 50,
     left: 16,
   },
-  photoContainer: {
-    position: "relative",
+
+  camera: {
     height: 240,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E8E8E8",
-    backgroundColor: "#F6F6F6",
   },
-  cameraButton: {
+  takePhotoContainer: {
     position: "absolute",
-    width: 60,
-    height: 60,
+    top: 10,
+    left: 10,
+    borderColor: "#fff",
+    borderWidth: 1,
+    borderRadius: 3,
   },
+
   loadPhotoText: {
     marginTop: 8,
     fontFamily: "Roboto-Regular",
@@ -167,7 +239,7 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Regular",
     fontSize: 16,
     lineHeight: 18.75,
-    color: "#BDBDBD",
+    color: "#212121",
     borderBottomColor: "#E8E8E8",
     borderBottomWidth: 1,
   },
@@ -192,5 +264,11 @@ const styles = StyleSheet.create({
     lineHeight: 18.75,
     textAlign: "center",
     color: "#BDBDBD",
+  },
+  trashButtonContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 0,
   },
 });

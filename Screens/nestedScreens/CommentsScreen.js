@@ -38,13 +38,22 @@ export default function CommentsScreen({ navigation, route }) {
             borderBottomColor: "#E8E8E8",
             paddingTop: 40,
             paddingBottom: 11,
+            marginTop: 10,
           }}
         >
-          <TouchableOpacity style={styles.backButton}>
-            <BackButton />
-          </TouchableOpacity>
           <Text style={styles.commentsTitle}>Comments</Text>
         </View>
+        <TouchableOpacity
+          style={styles.backButton}
+          activeOpacity={0.7}
+          onPress={() =>
+            navigation.navigate("Posts", {
+              screen: "DefaultPostsScreen",
+            })
+          }
+        >
+          <BackButton />
+        </TouchableOpacity>
 
         <View style={{ ...styles.postContainer, width: dimensions }}>
           <View style={{ ...styles.photoContainer, width: dimensions }}></View>
@@ -92,7 +101,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 24,
     height: 24,
-    top: 40,
+    top: 50,
     left: 16,
   },
   photoContainer: {

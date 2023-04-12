@@ -22,8 +22,6 @@ export default function Home() {
         alignSelf: "center",
         maxHeight: 83,
         backgroundColor: "#ffffff",
-        // marginBottom: 28,
-        // marginTop: 9,
         borderTopWidth: 1,
         borderTopColor: "#E8E8E8",
       }}
