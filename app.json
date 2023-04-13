@@ -9,6 +9,7 @@
         "backgroundColor": "#ffffff"
       }
     },
+    "plugins": ["expo-camera"],
     "name": "rn-social",
     "slug": "rn-social",
     "version": "1.0.0",

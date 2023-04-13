@@ -63,6 +63,7 @@ export default function RegistrationScreen({ navigation }) {
     Keyboard.dismiss();
     console.log(state);
     setState(initialState);
+
     navigation.navigate("Home");
   };
 
