@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { Provider, useSelector } from "react-redux";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import * as Font from "expo-font";
-import { NavigationContainer } from "@react-navigation/native";
-import { useRoute } from "./router";
+
+import { store } from "./redux/store";
+
+import Main from "./components/Main";
 
 let customFonts = {
   "Roboto-Regular": require("./assets/fonts/Roboto-Regular.ttf"),
@@ -23,15 +26,16 @@ export default function App() {
     loadFontsAsync();
   }, []);
 
-  const routing = useRoute();
-
   if (!fontsLoaded) {
     return null;
   }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <NavigationContainer>{routing}</NavigationContainer>
+      <Provider store={store}>
+        <Main />
+      </Provider>
     </View>
   );
 }

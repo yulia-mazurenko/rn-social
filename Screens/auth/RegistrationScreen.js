@@ -12,8 +12,10 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
 } from "react-native";
+import { useDispatch } from "react-redux";
 
 import AvatarButton from "../../assets/icons/add.svg";
+import { authSignUpUser } from "../../redux/auth/authOperations";
 
 const initialState = {
   login: "",
@@ -33,6 +35,8 @@ export default function RegistrationScreen({ navigation }) {
     Dimensions.get("window").width - 16 * 2
   );
   const [isShownPassword, setIsShownPassword] = useState(false);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
@@ -59,12 +63,11 @@ export default function RegistrationScreen({ navigation }) {
     };
   }, []);
 
-  const handleButtonPress = () => {
+  const handleSubmit = () => {
     Keyboard.dismiss();
     console.log(state);
+    dispatch(authSignUpUser(state));
     setState(initialState);
-
-    navigation.navigate("Home");
   };
 
   const handleInputFocus = (input) => {
@@ -181,7 +184,7 @@ export default function RegistrationScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.button}
                 activeOpacity={0.7}
-                onPress={handleButtonPress}
+                onPress={handleSubmit}
               >
                 <Text style={styles.buttonText}>Register</Text>
               </TouchableOpacity>

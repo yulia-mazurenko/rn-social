@@ -12,6 +12,9 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
 } from "react-native";
+import { useDispatch } from "react-redux";
+
+import { authSignInUser } from "../../redux/auth/authOperations";
 
 const initialState = {
   email: "",
@@ -29,6 +32,8 @@ export default function RegistrationScreen({ navigation }) {
     Dimensions.get("window").width - 16 * 2
   );
   const [isShownPassword, setIsShownPassword] = useState(false);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
@@ -55,11 +60,11 @@ export default function RegistrationScreen({ navigation }) {
     };
   }, []);
 
-  const handleButtonPress = () => {
+  const handleSubmit = () => {
     Keyboard.dismiss();
     console.log(state);
+    dispatch(authSignInUser(state));
     setState(initialState);
-    navigation.navigate("Home");
   };
 
   const handleInputFocus = (input) => {
@@ -148,7 +153,7 @@ export default function RegistrationScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.button}
                 activeOpacity={0.7}
-                onPress={handleButtonPress}
+                onPress={handleSubmit}
               >
                 <Text style={styles.buttonText}>Log In</Text>
               </TouchableOpacity>
