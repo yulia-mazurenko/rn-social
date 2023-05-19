@@ -86,7 +86,7 @@ export default function CreatePostsScreen({ navigation, route }) {
   }, []);
 
   const takePhoto = async () => {
-    console.log("location", location);
+   
     const { uri } = await camera.takePictureAsync();
     setPhoto(uri);
     setIsDisabledPublishButton(false);
@@ -131,7 +131,7 @@ export default function CreatePostsScreen({ navigation, route }) {
 
     const uniquePostId = Date.now().toString();
     const storageRef = await ref(storage, `postImage/${uniquePostId}`);
-    console.log(storageRef);
+   
 
     await uploadBytes(storageRef, file);
 
@@ -139,8 +139,7 @@ export default function CreatePostsScreen({ navigation, route }) {
       storage,
       `gs://rn-social-c5397.appspot.com/postImage/${uniquePostId}`
     );
-    // const url = await getBlob(gsReference);
-    // console.log(url);
+    
     const url = await getDownloadURL(gsReference);
     return url;
   };

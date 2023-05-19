@@ -29,47 +29,5 @@ export const useRoute = (isAuth) => {
       </AuthStack.Navigator>
     );
   }
-  return (
-    <Home />
-    // <MainTab.Navigator
-    //   labeled={false}
-    //   activeColor="#FF6C00"
-    //   inactiveColor="#212121"
-    //   barStyle={{
-    //     flex: 1,
-    //     alignItems: "center",
-    //     alignSelf: "center",
-    //     maxHeight: 83,
-    //     backgroundColor: "#ffffff",
-    //     borderTopWidth: 1,
-    //     borderTopColor: "#E8E8E8",
-    //   }}
-    //   screenOptions={{
-    //     headerShown: true,
-    //     tabBarShowLabel: false,
-    //   }}
-    // >
-    //   <MainTab.Screen
-    //     options={{
-    //       tabBarIcon: ({ focused, color, size }) => <PostsButton size={24} />,
-    //     }}
-    //     name="Posts"
-    //     component={PostsScreen}
-    //   />
-    //   <MainTab.Screen
-    //     options={{
-    //       tabBarIcon: ({ focused, color, size }) => <CreatePostsButton />,
-    //     }}
-    //     name="Create"
-    //     component={CreatePostsScreen}
-    //   />
-    //   <MainTab.Screen
-    //     options={{
-    //       tabBarIcon: ({ focused, color, size }) => <ProfileButton size={24} />,
-    //     }}
-    //     name="Profile"
-    //     component={ProfileScreen}
-    //   />
-    // </MainTab.Navigator>
-  );
+  return <Home />;
 };
