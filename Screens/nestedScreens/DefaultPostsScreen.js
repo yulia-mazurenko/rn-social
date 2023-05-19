@@ -10,22 +10,61 @@ import {
   FlatList,
   Image,
 } from "react-native";
+import { useDispatch } from "react-redux";
+import { collection, getCountFromServer, getDocs } from "firebase/firestore";
 
 import LogoutButton from "../../assets/icons/log-out.svg";
 import MapButton from "../../assets/icons/map-icon.svg";
 import CommentsButton from "../../assets/icons/comments-icon.svg";
+import { useSelector } from "react-redux";
+import { selectEmail, selectLogin } from "../../redux/auth/selectors";
+import { authSignOutUser } from "../../redux/auth/authOperations";
+import { db } from "../../firebase/config";
+import { askAsync } from "expo-permissions";
 
 export default function DefaultPostsScreen({ navigation, route }) {
   const [posts, setPosts] = useState([]);
+  const [countComments, setCountComments] = useState([]);
   const [dimensions, setDimensions] = useState(
     Dimensions.get("window").width - 16 * 2
   );
+  const name = useSelector(selectLogin);
+  const email = useSelector(selectEmail);
+
+  const dispatch = useDispatch();
+
+  const postsId = posts.map((post) => post.id);
+
+  const getComments = async (postId) => {
+    const coll = collection(db, "posts", postId, "comments");
+    const snapshot = await getCountFromServer(coll);
+
+    setCountComments((prevState) => [
+      ...prevState,
+      { postId: postId, count: snapshot.data().count },
+    ]);
+  };
+
+  const getCountComments = (id) => {
+    const count = countComments.find((item) => item.postId === id)?.count;
+    return count;
+  };
+
+  const getAllPosts = async () => {
+    const querySnapshot = await getDocs(collection(db, "posts"));
+
+    querySnapshot.forEach((doc) => {
+      setPosts((prevState) => [...prevState, { ...doc.data(), id: doc.id }]);
+    });
+  };
 
   useEffect(() => {
-    if (route.params) {
-      setPosts((prevState) => [...prevState, route.params]);
-    }
-  }, [route.params]);
+    postsId.forEach((id) => getComments(id));
+  }, []);
+
+  useEffect(() => {
+    getAllPosts();
+  }, []);
 
   useEffect(() => {
     const onChange = () => {
@@ -39,6 +78,10 @@ export default function DefaultPostsScreen({ navigation, route }) {
     };
   }, []);
 
+  const handleLogOut = () => {
+    dispatch(authSignOutUser());
+  };
+
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
@@ -50,7 +93,7 @@ export default function DefaultPostsScreen({ navigation, route }) {
           }}
         >
           <Text style={styles.postsTitle}>Posts</Text>
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogOut}>
             <LogoutButton />
           </TouchableOpacity>
         </View>
@@ -60,8 +103,8 @@ export default function DefaultPostsScreen({ navigation, route }) {
             <View style={styles.avatar}></View>
 
             <View style={{ paddingTop: 16 }}>
-              <Text style={styles.userNameText}>Name</Text>
-              <Text style={styles.userEmailText}>Email</Text>
+              <Text style={styles.userNameText}>{name}</Text>
+              <Text style={styles.userEmailText}>{email}</Text>
             </View>
           </View>
 
@@ -91,14 +134,12 @@ export default function DefaultPostsScreen({ navigation, route }) {
                   />
                 </View>
                 <Text style={{ ...styles.descriptionText, marginBottom: 11 }}>
-                  {item.state.name}
+                  {item.state?.name}
                 </Text>
-
                 <View
                   style={{
                     flex: 1,
                     flexDirection: "row",
-                    // justifyContent: "space-between",
                   }}
                 >
                   <View
@@ -109,11 +150,16 @@ export default function DefaultPostsScreen({ navigation, route }) {
                   >
                     <TouchableOpacity
                       style={{ marginRight: 9 }}
-                      onPress={() => navigation.navigate("Comments")}
+                      onPress={() =>
+                        navigation.navigate("Comments", {
+                          postId: item.id,
+                          post: posts.filter((post) => post.id === item.id),
+                        })
+                      }
                     >
                       <CommentsButton />
                     </TouchableOpacity>
-                    <Text>0</Text>
+                    <Text>{getCountComments(item.id)}</Text>
                   </View>
 
                   <View
@@ -124,7 +170,9 @@ export default function DefaultPostsScreen({ navigation, route }) {
                   >
                     <TouchableOpacity
                       style={{ marginRight: 8 }}
-                      onPress={() => navigation.navigate("Map")}
+                      onPress={() =>
+                        navigation.navigate("Map", { location: item.location })
+                      }
                     >
                       <MapButton />
                     </TouchableOpacity>
@@ -139,7 +187,7 @@ export default function DefaultPostsScreen({ navigation, route }) {
                         textDecorationStyle: "solid",
                       }}
                     >
-                      {item.state.place}
+                      {item.state?.place}
                     </Text>
                   </View>
                 </View>

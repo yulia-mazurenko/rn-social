@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   StyleSheet,
   View,
@@ -12,11 +13,22 @@ import {
 } from "react-native";
 import { Camera } from "expo-camera";
 import * as Location from "expo-location";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  getBlob,
+} from "firebase/storage";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { app } from "../../firebase/config";
+import { db } from "../../firebase/config";
 
 import BackButton from "../../assets/icons/arrow-left.svg";
 import CameraButton from "../../assets/icons/camera.svg";
 import TrashButton from "../../assets/icons/trash.svg";
 import MapButton from "../../assets/icons/map-icon.svg";
+import { selectLogin, selectUserId } from "../../redux/auth/selectors";
 
 const initialState = {
   name: "",
@@ -28,10 +40,39 @@ export default function CreatePostsScreen({ navigation, route }) {
   const [camera, setCamera] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [isDisabledPublishButton, setIsDisabledPublishButton] = useState(true);
+  const [location, setLocation] = useState(null);
+  const [country, setCountry] = useState(null);
+
+  const userId = useSelector(selectUserId);
+  const login = useSelector(selectLogin);
 
   const [dimensions, setDimensions] = useState(
     Dimensions.get("window").width - 16 * 2
   );
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        console.log("Permission to access location was denied");
+        return;
+      }
+
+      let locationRes = await Location.getCurrentPositionAsync({});
+      setLocation(locationRes);
+
+      const place = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      place.find((p) => {
+        setCountry(p.country);
+      });
+    })();
+  }, []);
+
   useEffect(() => {
     const onChange = () => {
       const width = Dimensions.get("window").width - 16 * 2;
@@ -45,11 +86,9 @@ export default function CreatePostsScreen({ navigation, route }) {
   }, []);
 
   const takePhoto = async () => {
-    const photo = await camera.takePictureAsync();
-    let location = await Location.getCurrentPositionAsync({});
-    console.log("latitude", location.coords.latitude);
-    console.log("longitude", location.coords.longitude);
-    setPhoto(photo.uri);
+    console.log("location", location);
+    const { uri } = await camera.takePictureAsync();
+    setPhoto(uri);
     setIsDisabledPublishButton(false);
   };
   const deletePost = () => {
@@ -58,11 +97,52 @@ export default function CreatePostsScreen({ navigation, route }) {
   };
 
   const sendPhoto = () => {
+    uploadPostToServer();
     setState(initialState);
     navigation.navigate("Posts", {
       screen: "DefaultPostsScreen",
       params: { photo, state },
     });
+  };
+
+  const uploadPostToServer = async () => {
+    const photo = await uploadPhotoToServer();
+
+    try {
+      const docRef = await addDoc(collection(db, "posts"), {
+        photo,
+        state,
+        location: location.coords,
+        country,
+        userId,
+        login,
+      });
+      console.log("Post written with ID: ", docRef.id);
+    } catch (e) {
+      console.error("Error adding post: ", e);
+    }
+  };
+
+  const uploadPhotoToServer = async () => {
+    const storage = getStorage(app);
+
+    const response = await fetch(photo);
+    const file = await response.blob();
+
+    const uniquePostId = Date.now().toString();
+    const storageRef = await ref(storage, `postImage/${uniquePostId}`);
+    console.log(storageRef);
+
+    await uploadBytes(storageRef, file);
+
+    const gsReference = await ref(
+      storage,
+      `gs://rn-social-c5397.appspot.com/postImage/${uniquePostId}`
+    );
+    // const url = await getBlob(gsReference);
+    // console.log(url);
+    const url = await getDownloadURL(gsReference);
+    return url;
   };
 
   return (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   StyleSheet,
   View,
@@ -7,10 +8,61 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Dimensions,
+  FlatList,
+  Image,
+  TouchableOpacity,
 } from "react-native";
 
-export default function ProfileScreen({ navigation }) {
+import * as Location from "expo-location";
+
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getCountFromServer,
+} from "firebase/firestore";
+import { selectLogin, selectUserId } from "../../redux/auth/selectors";
+import { db } from "../../firebase/config";
+import MapButton from "../../assets/icons/map-icon.svg";
+import CommentsButton from "../../assets/icons/comments-icon.svg";
+
+export default function ProfileScreen({ navigation, route }) {
   const [dimensions, setDimensions] = useState(Dimensions.get("window").width);
+  const [userPosts, setUserPosts] = useState([]);
+  const [countComments, setCountComments] = useState([]);
+
+  const userId = useSelector(selectUserId);
+  const login = useSelector(selectLogin);
+
+  const postsId = userPosts.map((post) => post.id);
+
+  const getUserPosts = async () => {
+    const q = query(collection(db, "posts"), where("userId", "==", userId));
+
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      setUserPosts((prevState) => [
+        ...prevState,
+        { ...doc.data(), id: doc.id },
+      ]);
+    });
+  };
+
+  const getComments = async (postId) => {
+    const coll = collection(db, "posts", postId, "comments");
+    const snapshot = await getCountFromServer(coll);
+
+    setCountComments((prevState) => [
+      ...prevState,
+      { postId: postId, count: snapshot.data().count },
+    ]);
+  };
+
+  const getCountComments = (id) => {
+    const count = countComments.find((item) => item.postId === id)?.count;
+    return count;
+  };
 
   useEffect(() => {
     const onChange = () => {
@@ -22,6 +74,14 @@ export default function ProfileScreen({ navigation }) {
     return () => {
       dimentionsChange.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    getUserPosts();
+  }, []);
+
+  useEffect(() => {
+    postsId.forEach((id) => getComments(id));
   }, []);
 
   return (
@@ -39,7 +99,96 @@ export default function ProfileScreen({ navigation }) {
               }}
             ></View>
 
-            <Text style={styles.userName}>User Name</Text>
+            <Text style={styles.userName}>{login}</Text>
+
+            <FlatList
+              style={{ flex: 1 }}
+              data={userPosts}
+              keyExtractor={(item, indx) => indx.toString()}
+              renderItem={({ item }) => (
+                <View>
+                  <View
+                    style={{
+                      marginBottom: 8,
+                      justifyContent: "center",
+                      width: 343,
+                      borderWidth: 1,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.photo }}
+                      style={{
+                        width: dimensions,
+                        height: 240,
+                        borderWidth: 1,
+                        borderRadius: 8,
+                      }}
+                    />
+                  </View>
+                  <Text style={styles.postName}>{item.state.name}</Text>
+
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                    }}
+                  >
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={{ marginRight: 9 }}
+                        onPress={() =>
+                          navigation.navigate("Comments", {
+                            postId: item.id,
+                            post: userPosts.filter(
+                              (post) => post.id === item.id
+                            ),
+                          })
+                        }
+                      >
+                        <CommentsButton />
+                      </TouchableOpacity>
+                      <Text>{getCountComments(item.id)}</Text>
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={{ marginRight: 8 }}
+                        onPress={() =>
+                          navigation.navigate("Map", {
+                            location: item.location,
+                          })
+                        }
+                      >
+                        <MapButton />
+                      </TouchableOpacity>
+
+                      <Text
+                        style={{
+                          ...styles.descriptionText,
+                          marginBottom: 34,
+                          fontFamily: "Roboto-Regular",
+                          textDecorationColor: "#212121",
+                          textDecorationLine: "underline",
+                          textDecorationStyle: "solid",
+                        }}
+                      >
+                        {item.country}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            />
           </View>
         </ImageBackground>
       </View>
@@ -94,6 +243,13 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Medium",
     fontSize: 30,
     lineHeight: 35.16,
+    color: "#212121",
+  },
+  postName: {
+    marginBottom: 8,
+    fontFamily: "Roboto-Medium",
+    fontSize: 16,
+    lineHeight: 19,
     color: "#212121",
   },
 });
