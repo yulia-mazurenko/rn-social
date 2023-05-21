@@ -86,7 +86,6 @@ export default function CreatePostsScreen({ navigation, route }) {
   }, []);
 
   const takePhoto = async () => {
-   
     const { uri } = await camera.takePictureAsync();
     setPhoto(uri);
     setIsDisabledPublishButton(false);
@@ -118,8 +117,14 @@ export default function CreatePostsScreen({ navigation, route }) {
         login,
       });
       console.log("Post written with ID: ", docRef.id);
-    } catch (e) {
-      console.error("Error adding post: ", e);
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        duration: 3000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      console.error("Error adding post: ", error);
     }
   };
 
@@ -131,7 +136,6 @@ export default function CreatePostsScreen({ navigation, route }) {
 
     const uniquePostId = Date.now().toString();
     const storageRef = await ref(storage, `postImage/${uniquePostId}`);
-   
 
     await uploadBytes(storageRef, file);
 
@@ -139,7 +143,7 @@ export default function CreatePostsScreen({ navigation, route }) {
       storage,
       `gs://rn-social-c5397.appspot.com/postImage/${uniquePostId}`
     );
-    
+
     const url = await getDownloadURL(gsReference);
     return url;
   };

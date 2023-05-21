@@ -9,9 +9,10 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Dimensions,
-  SafeAreaView,
   FlatList,
   Image,
+  TouchableHighlight,
+  ActivityIndicator,
 } from "react-native";
 
 import BackButton from "../../assets/icons/arrow-left.svg";
@@ -29,6 +30,8 @@ export default function CommentsScreen({ navigation, route }) {
   );
   const [comment, setComment] = useState("");
   const [allComments, setAllComments] = useState([]);
+  const [isCommentCreated, setIsCommentCreated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const login = useSelector(selectLogin);
 
@@ -72,35 +75,58 @@ export default function CommentsScreen({ navigation, route }) {
 
   const createComment = async () => {
     try {
-      const docRef = await addDoc(collection(db, "posts", postId, "comments"), {
+      const newComment = {
         postId,
         comment,
         login,
         date: createDate(),
-      });
+        createdAt: new Date(),
+      };
+      const docRef = await addDoc(
+        collection(db, "posts", postId, "comments"),
+        newComment
+      );
+      setIsCommentCreated((prevState) => !prevState);
       console.log("Comment written with ID: ", docRef.id);
-    } catch (e) {
-      console.error("Error adding post: ", e);
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        duration: 3000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      console.log("Error adding post: ", error);
     }
     setComment("");
   };
 
+  let commentsList = [];
+  const getAllComments = async () => {
+    try {
+      setIsLoading(true);
+      const querySnapshot = await getDocs(
+        collection(db, "posts", postId, "comments")
+      );
+      querySnapshot.forEach((doc) => {
+        commentsList.push({ ...doc.data(), id: doc.id });
+      });
+
+      const sortedComments = commentsList.sort(
+        (prevComment, nextComment) =>
+          nextComment.createdAt - prevComment.createdAt
+      );
+
+      setAllComments(sortedComments);
+
+      setIsLoading(false);
+    } catch (error) {
+      console.log(false);
+    }
+  };
+
   useEffect(() => {
     getAllComments();
-  }, []);
-
-  const getAllComments = async () => {
-    const querySnapshot = await getDocs(
-      collection(db, "posts", postId, "comments")
-    );
-
-    querySnapshot.forEach((doc) => {
-      setAllComments((prevState) => [
-        ...prevState,
-        { ...doc.data(), id: doc.id },
-      ]);
-    });
-  };
+  }, [isCommentCreated]);
 
   useEffect(() => {
     const onChange = () => {
@@ -153,19 +179,30 @@ export default function CommentsScreen({ navigation, route }) {
               }}
             />
           </View>
-          <SafeAreaView style={styles.container}>
+          <View style={styles.container}>
+            <ActivityIndicator
+              size="large"
+              color="#FF6C00"
+              animating={isLoading}
+            />
             <FlatList
               style={{ ...styles.commentsContainer, width: dimensions }}
               data={allComments}
               keyExtractor={({ id }) => id.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.comment}>
-                  <Text style={styles.commentText}>{item.comment}</Text>
-                  <Text style={styles.commentDateText}>{item.date}</Text>
-                </View>
+              renderItem={({ item, index, separators }) => (
+                <TouchableHighlight
+                  key={item.createdAt}
+                  onShowUnderlay={separators.highlight}
+                  onHideUnderlay={separators.unhighlight}
+                >
+                  <View style={styles.comment}>
+                    <Text style={styles.commentText}>{item.comment}</Text>
+                    <Text style={styles.commentDateText}>{item.date}</Text>
+                  </View>
+                </TouchableHighlight>
               )}
             />
-          </SafeAreaView>
+          </View>
 
           <View style={{ position: "relative", marginBottom: 16 }}>
             <TextInput

@@ -15,6 +15,7 @@ import {
 import { useDispatch } from "react-redux";
 
 import { authSignInUser } from "../../redux/auth/authOperations";
+// import { useToast } from "react-native-toast-notifications";
 
 const initialState = {
   email: "",
@@ -78,6 +79,8 @@ export default function RegistrationScreen({ navigation }) {
       [input]: false,
     });
   };
+
+  // const toast = useToast();
 
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>

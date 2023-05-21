@@ -24,11 +24,13 @@
     "expo": "^48.0.10",
     "expo-app-loading": "^2.1.1",
     "expo-camera": "~13.2.1",
+    "expo-cli": "^6.3.7",
     "expo-font": "~11.1.1",
     "expo-location": "~15.1.1",
     "expo-permissions": "^14.1.1",
     "expo-splash-screen": "~0.18.1",
     "expo-status-bar": "~1.4.4",
+    "expo-updates": "~0.16.4",
     "firebase": "^9.21.0",
     "react": "18.2.0",
     "react-native": "0.71.6",
@@ -39,6 +41,7 @@
     "react-native-screens": "~3.20.0",
     "react-native-svg": "13.4.0",
     "react-native-svg-transformer": "^1.0.0",
+    "react-native-toast-notifications": "^3.3.1",
     "react-native-vector-icons": "^9.2.0",
     "react-redux": "^8.0.5"
   },
@@ -47,5 +50,8 @@
     "react-devtools": "^4.27.4",
     "react-native-debugger-open": "^0.3.25"
   },
-  "private": true
+  "private": true,
+  "description": "",
+  "author": "",
+  "license": "ISC"
 }

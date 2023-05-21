@@ -34,6 +34,12 @@ export const authSignUpUser =
 
       dispatch(updateUserProfile(userUpdateProfile));
     } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        duration: 3000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
       console.log("error", error);
       console.log("error.message", error.message);
     }
@@ -54,7 +60,13 @@ export const authSignInUser =
 
       dispatch(updateUserProfile(userUpdateProfile));
     } catch (error) {
-      console.log("error", error);
+      toast.show("Wrong password or email", {
+        type: "danger",
+        duration: 3000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+
       console.log("error.message", error.message);
     }
   };
@@ -71,6 +83,12 @@ export const authSignOutUser = () => async (dispatch, getState) => {
       })
     );
   } catch (error) {
+    toast.show(error.message, {
+      type: "danger",
+      duration: 3000,
+      offset: 30,
+      animationType: "zoom-in",
+    });
     console.log("error", error);
     console.log("error.message", error.message);
   }
@@ -98,6 +116,12 @@ export const authStateChangeUser = () => async (dispatch) => {
       }
     });
   } catch (error) {
+    toast.show(error.message, {
+      type: "danger",
+      duration: 3000,
+      offset: 30,
+      animationType: "zoom-in",
+    });
     console.log("error", error);
     console.log("error.message", error.message);
   }

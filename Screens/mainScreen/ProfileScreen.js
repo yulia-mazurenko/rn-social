@@ -11,9 +11,9 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
+  TouchableHighlight,
 } from "react-native";
-
-import * as Location from "expo-location";
 
 import {
   collection,
@@ -31,32 +31,55 @@ export default function ProfileScreen({ navigation, route }) {
   const [dimensions, setDimensions] = useState(Dimensions.get("window").width);
   const [userPosts, setUserPosts] = useState([]);
   const [countComments, setCountComments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const userId = useSelector(selectUserId);
   const login = useSelector(selectLogin);
-
-  const postsId = userPosts.map((post) => post.id);
+  let postsList = [];
 
   const getUserPosts = async () => {
-    const q = query(collection(db, "posts"), where("userId", "==", userId));
+    try {
+      const q = query(collection(db, "posts"), where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
 
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc) => {
-      setUserPosts((prevState) => [
-        ...prevState,
-        { ...doc.data(), id: doc.id },
-      ]);
-    });
+      querySnapshot.forEach((doc) => {
+        postsList.push({ ...doc.data(), id: doc.id });
+
+        setUserPosts((prevState) => [
+          ...prevState,
+          { ...doc.data(), id: doc.id },
+        ]);
+      });
+
+      const postsId = postsList.map((post) => post.id);
+      postsId.forEach((id) => getComments(id));
+    } catch (error) {
+      toast.show("Something went wrong", {
+        type: "danger",
+        duration: 3000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      console.log(error.message);
+    }
   };
 
   const getComments = async (postId) => {
-    const coll = collection(db, "posts", postId, "comments");
-    const snapshot = await getCountFromServer(coll);
+    try {
+      setIsLoading(true);
 
-    setCountComments((prevState) => [
-      ...prevState,
-      { postId: postId, count: snapshot.data().count },
-    ]);
+      const coll = collection(db, "posts", postId, "comments");
+      const snapshot = await getCountFromServer(coll);
+
+      setCountComments((prevState) => [
+        ...prevState,
+        { postId: postId, count: snapshot.data().count },
+      ]);
+
+      setIsLoading(false);
+    } catch (error) {
+      console.log(error.message);
+    }
   };
 
   const getCountComments = (id) => {
@@ -80,10 +103,6 @@ export default function ProfileScreen({ navigation, route }) {
     getUserPosts();
   }, []);
 
-  useEffect(() => {
-    postsId.forEach((id) => getComments(id));
-  }, []);
-
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
@@ -101,92 +120,103 @@ export default function ProfileScreen({ navigation, route }) {
 
             <Text style={styles.userName}>{login}</Text>
 
+            <ActivityIndicator
+              size="large"
+              color="#FF6C00"
+              animating={isLoading}
+            />
             <FlatList
               style={{ flex: 1 }}
               data={userPosts}
               keyExtractor={(item, indx) => indx.toString()}
-              renderItem={({ item }) => (
-                <View>
-                  <View
-                    style={{
-                      marginBottom: 8,
-                      justifyContent: "center",
-                      width: 343,
-                      borderWidth: 1,
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Image
-                      source={{ uri: item.photo }}
+              renderItem={({ item, index, separators }) => (
+                <TouchableHighlight
+                  key={item.id}
+                  onShowUnderlay={separators.highlight}
+                  onHideUnderlay={separators.unhighlight}
+                >
+                  <View>
+                    <View
                       style={{
-                        width: dimensions,
-                        height: 240,
+                        marginBottom: 8,
+                        justifyContent: "center",
+                        width: 343,
                         borderWidth: 1,
                         borderRadius: 8,
                       }}
-                    />
-                  </View>
-                  <Text style={styles.postName}>{item.state.name}</Text>
-
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                    }}
-                  >
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                      }}
                     >
-                      <TouchableOpacity
-                        style={{ marginRight: 9 }}
-                        onPress={() =>
-                          navigation.navigate("Comments", {
-                            postId: item.id,
-                            post: userPosts.filter(
-                              (post) => post.id === item.id
-                            ),
-                          })
-                        }
-                      >
-                        <CommentsButton />
-                      </TouchableOpacity>
-                      <Text>{getCountComments(item.id)}</Text>
-                    </View>
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                      }}
-                    >
-                      <TouchableOpacity
-                        style={{ marginRight: 8 }}
-                        onPress={() =>
-                          navigation.navigate("Map", {
-                            location: item.location,
-                          })
-                        }
-                      >
-                        <MapButton />
-                      </TouchableOpacity>
-
-                      <Text
+                      <Image
+                        source={{ uri: item.photo }}
                         style={{
-                          ...styles.descriptionText,
-                          marginBottom: 34,
-                          fontFamily: "Roboto-Regular",
-                          textDecorationColor: "#212121",
-                          textDecorationLine: "underline",
-                          textDecorationStyle: "solid",
+                          width: dimensions,
+                          height: 240,
+                          borderWidth: 1,
+                          borderRadius: 8,
+                        }}
+                      />
+                    </View>
+                    <Text style={styles.postName}>{item.state.name}</Text>
+
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                      }}
+                    >
+                      <View
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
                         }}
                       >
-                        {item.country}
-                      </Text>
+                        <TouchableOpacity
+                          style={{ marginRight: 9 }}
+                          onPress={() =>
+                            navigation.navigate("Comments", {
+                              postId: item.id,
+                              post: userPosts.filter(
+                                (post) => post.id === item.id
+                              ),
+                            })
+                          }
+                        >
+                          <CommentsButton />
+                        </TouchableOpacity>
+                        <Text>{getCountComments(item.id)}</Text>
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                        }}
+                      >
+                        <TouchableOpacity
+                          style={{ marginRight: 8 }}
+                          onPress={() =>
+                            navigation.navigate("Map", {
+                              location: item.location,
+                            })
+                          }
+                        >
+                          <MapButton />
+                        </TouchableOpacity>
+
+                        <Text
+                          style={{
+                            ...styles.descriptionText,
+                            marginBottom: 34,
+                            fontFamily: "Roboto-Regular",
+                            textDecorationColor: "#212121",
+                            textDecorationLine: "underline",
+                            textDecorationStyle: "solid",
+                          }}
+                        >
+                          {item.country}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
+                </TouchableHighlight>
               )}
             />
           </View>

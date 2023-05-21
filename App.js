@@ -3,6 +3,8 @@ import { Provider, useSelector } from "react-redux";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import * as Font from "expo-font";
+// import { ToastProvider } from "react-native-toast-notifications";
+import Toast from "react-native-toast-notifications";
 
 import { store } from "./redux/store";
 
@@ -31,12 +33,15 @@ export default function App() {
   }
 
   return (
+    // <ToastProvider>
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Provider store={store}>
         <Main />
       </Provider>
+      <Toast ref={(ref) => (global["toast"] = ref)} />
     </View>
+    // </ToastProvider>
   );
 }
 

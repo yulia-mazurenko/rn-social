@@ -9,6 +9,8 @@ import {
   Dimensions,
   FlatList,
   Image,
+  TouchableHighlight,
+  ActivityIndicator,
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { collection, getCountFromServer, getDocs } from "firebase/firestore";
@@ -20,7 +22,6 @@ import { useSelector } from "react-redux";
 import { selectEmail, selectLogin } from "../../redux/auth/selectors";
 import { authSignOutUser } from "../../redux/auth/authOperations";
 import { db } from "../../firebase/config";
-import { askAsync } from "expo-permissions";
 
 export default function DefaultPostsScreen({ navigation, route }) {
   const [posts, setPosts] = useState([]);
@@ -28,21 +29,36 @@ export default function DefaultPostsScreen({ navigation, route }) {
   const [dimensions, setDimensions] = useState(
     Dimensions.get("window").width - 16 * 2
   );
+
+  const [isPostCreated, setIsPostCreated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const name = useSelector(selectLogin);
   const email = useSelector(selectEmail);
 
   const dispatch = useDispatch();
 
-  const postsId = posts.map((post) => post.id);
-
   const getComments = async (postId) => {
-    const coll = collection(db, "posts", postId, "comments");
-    const snapshot = await getCountFromServer(coll);
+    try {
+      setIsLoading(true);
 
-    setCountComments((prevState) => [
-      ...prevState,
-      { postId: postId, count: snapshot.data().count },
-    ]);
+      const coll = collection(db, "posts", postId, "comments");
+      const snapshot = await getCountFromServer(coll);
+      setCountComments((prevState) => [
+        ...prevState,
+        { postId: postId, count: snapshot.data().count },
+      ]);
+      setIsPostCreated((prevState) => !prevState);
+      console.log("end posts");
+      setIsLoading(false);
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        duration: 3000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
   };
 
   const getCountComments = (id) => {
@@ -51,19 +67,26 @@ export default function DefaultPostsScreen({ navigation, route }) {
   };
 
   const getAllPosts = async () => {
-    const querySnapshot = await getDocs(collection(db, "posts"));
+    try {
+      setIsLoading(true);
+      const querySnapshot = await getDocs(collection(db, "posts"));
 
-    querySnapshot.forEach((doc) => {
-      setPosts((prevState) => [...prevState, { ...doc.data(), id: doc.id }]);
-    });
+      querySnapshot.forEach((doc) => {
+        setPosts((prevState) => [...prevState, { ...doc.data(), id: doc.id }]);
+      });
+      setIsLoading(false);
+    } catch (error) {
+      console.log(error.message);
+    }
   };
 
   useEffect(() => {
-    postsId.forEach((id) => getComments(id));
-  }, []);
+    const postIdList = posts.map((post) => post.id);
+    postIdList.forEach((id) => getComments(id));
+  }, [posts]);
 
   useEffect(() => {
-    getAllPosts();
+    getAllPosts(isPostCreated);
   }, []);
 
   useEffect(() => {
@@ -107,91 +130,103 @@ export default function DefaultPostsScreen({ navigation, route }) {
               <Text style={styles.userEmailText}>{email}</Text>
             </View>
           </View>
-
+          <ActivityIndicator
+            size="large"
+            color="#FF6C00"
+            animating={isLoading}
+          />
           <FlatList
             style={{ flex: 1 }}
             data={posts}
             keyExtractor={(item, indx) => indx.toString()}
-            renderItem={({ item }) => (
-              <>
-                <View
-                  style={{
-                    marginBottom: 8,
-                    justifyContent: "center",
-                    width: 343,
-                    borderWidth: 1,
-                    borderRadius: 8,
-                  }}
-                >
-                  <Image
-                    source={{ uri: item.photo }}
+            renderItem={({ item, index, separators }) => (
+              <TouchableHighlight
+                key={item.id}
+                onShowUnderlay={separators.highlight}
+                onHideUnderlay={separators.unhighlight}
+              >
+                <View>
+                  <View
                     style={{
-                      width: dimensions,
-                      height: 240,
+                      marginBottom: 8,
+                      justifyContent: "center",
+                      width: 343,
                       borderWidth: 1,
                       borderRadius: 8,
                     }}
-                  />
-                </View>
-                <Text style={{ ...styles.descriptionText, marginBottom: 11 }}>
-                  {item.state?.name}
-                </Text>
-                <View
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                  }}
-                >
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                    }}
                   >
-                    <TouchableOpacity
-                      style={{ marginRight: 9 }}
-                      onPress={() =>
-                        navigation.navigate("Comments", {
-                          postId: item.id,
-                          post: posts.filter((post) => post.id === item.id),
-                        })
-                      }
-                    >
-                      <CommentsButton />
-                    </TouchableOpacity>
-                    <Text>{getCountComments(item.id)}</Text>
-                  </View>
-
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                    }}
-                  >
-                    <TouchableOpacity
-                      style={{ marginRight: 8 }}
-                      onPress={() =>
-                        navigation.navigate("Map", { location: item.location })
-                      }
-                    >
-                      <MapButton />
-                    </TouchableOpacity>
-
-                    <Text
+                    <Image
+                      source={{ uri: item.photo }}
                       style={{
-                        ...styles.descriptionText,
-                        marginBottom: 34,
-                        fontFamily: "Roboto-Regular",
-                        textDecorationColor: "#212121",
-                        textDecorationLine: "underline",
-                        textDecorationStyle: "solid",
+                        width: dimensions,
+                        height: 240,
+                        borderWidth: 1,
+                        borderRadius: 8,
+                      }}
+                    />
+                  </View>
+                  <Text style={{ ...styles.descriptionText, marginBottom: 11 }}>
+                    {item.state?.name}
+                  </Text>
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                    }}
+                  >
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
                       }}
                     >
-                      {item.state?.place}
-                    </Text>
+                      <TouchableOpacity
+                        style={{ marginRight: 9 }}
+                        onPress={() =>
+                          navigation.navigate("Comments", {
+                            postId: item.id,
+                            post: posts.filter((post) => post.id === item.id),
+                          })
+                        }
+                      >
+                        <CommentsButton />
+                      </TouchableOpacity>
+                      <Text>{getCountComments(item.id)}</Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={{ marginRight: 8 }}
+                        onPress={() =>
+                          navigation.navigate("Map", {
+                            location: item.location,
+                          })
+                        }
+                      >
+                        <MapButton />
+                      </TouchableOpacity>
+
+                      <Text
+                        style={{
+                          ...styles.descriptionText,
+                          marginBottom: 34,
+                          fontFamily: "Roboto-Regular",
+                          textDecorationColor: "#212121",
+                          textDecorationLine: "underline",
+                          textDecorationStyle: "solid",
+                        }}
+                      >
+                        {item.state?.place}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </>
+              </TouchableHighlight>
             )}
           />
         </View>
